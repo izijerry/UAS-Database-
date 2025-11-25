@@ -1,0 +1,591 @@
+// =============================
+// ========== USERS ============
+// =============================
+db.users.insertOne({
+  nama: "Nama User",
+  email: "user@example.com",
+  password: "<hashed_password>",
+  no_hp: "0812345678",
+  created_at: new Date(),
+  updated_at: new Date()
+});
+
+// =============================
+// ======== RESTAURANTS ========
+// =============================
+db.restaurants.insertOne({
+  nama_restoran: "Contoh Restoran",
+  alamat: "Alamat lengkap",
+  no_hp: "0812345678",
+  email: "resto@example.com",
+  created_at: new Date(),
+  updated_at: new Date()
+});
+
+// =============================
+// ===== RESTAURANT ADMINS =====
+// =============================
+db.restaurant_admins.insertOne({
+  restaurant_id: ObjectId("624..."),
+  nama_admin: "Admin Restoran",
+  email: "admin@resto.com",
+  password: "<hashed_password>",
+  created_at: new Date(),
+  updated_at: new Date()
+});
+
+// =============================
+// =========== MENUS ===========
+// =============================
+db.menus.insertOne({
+  restaurant_id: ObjectId("624..."),
+  nama_menu: "Caramel Latte",
+  deskripsi: "Kopi susu caramel",
+  harga: 35000,
+  gambar_menu: "uploads/menu/caramel.jpg",
+  stock: 20,
+  available: true,
+  created_at: new Date(),
+  updated_at: new Date()
+});
+
+// =============================
+// =========== ORDERS ==========
+// =============================
+db.orders.insertOne({
+  user_id: ObjectId("624..."),
+  restaurant_id: ObjectId("624..."),
+
+  order_items: [
+    {
+      menu_id: ObjectId("624..."),
+      nama_menu: "Caramel Latte",
+      harga: 35000,
+      jumlah: 2,
+      subtotal: 70000
+    }
+  ],
+
+  total_harga: 70000,
+  metode_pembayaran: "E-Wallet",
+
+  status_pesanan: "Pembayaran Belum Lunas",
+
+  qr_code: null,         // akan diisi ketika pembayaran lunas
+  pickup_code: null,     // akan diisi ketika pembayaran lunas
+  tanggal_diambil: null,
+
+  created_at: new Date(),
+  updated_at: new Date()
+});
+
+// =============================
+// ========= PAYMENTS ==========
+// =============================
+db.payments.insertOne({
+  order_id: ObjectId("624..."),
+  metode: "E-Wallet",
+  jumlah: 70000,
+  status: "Belum Lunas",
+  transaksi_id: null,
+  bukti_transfer: null,
+  tanggal_pembayaran: null,
+  created_at: new Date(),
+  updated_at: new Date()
+});
+
+// =============================
+// ========= INDEXES ===========
+// =============================
+db.users.createIndex({ email: 1 }, { unique: true });
+db.restaurant_admins.createIndex({ email: 1 }, { unique: true });
+db.menus.createIndex({ restaurant_id: 1 });
+db.orders.createIndex({ user_id: 1 });
+db.orders.createIndex({ restaurant_id: 1 });
+db.orders.createIndex({ status_pesanan: 1 });
+db.payments.createIndex({ order_id: 1 });
+
+// =============================
+// ====== UPDATE FLOW EX =======
+// =============================
+
+// 1. Payment jadi lunas
+db.payments.updateOne(
+  { _id: ObjectId("624...") },
+  {
+    $set: {
+      status: "Lunas",
+      transaksi_id: "TRX123456",
+      tanggal_pembayaran: new Date(),
+      updated_at: new Date()
+    }
+  }
+);
+
+// 2. Order diperbarui setelah lunas
+db.orders.updateOne(
+  { _id: ObjectId("624...") },
+  {
+    $set: {
+      status_pesanan: "Pembayaran Lunas",
+      qr_code: "/uploads/qrcode/ABC123.png",
+      pickup_code: "ABC123",
+      updated_at: new Date()
+    }
+  }
+);
+
+
+
+-CONTOH PEMAKAIAN
+
+1. user memilih menu di aplikasi
+
+db.menus.find({ restaurant_id: ObjectId("67607aa01d8f000001000010") })
+
+2. User melakukan checkout → buat ORDER baru
+
+db.orders.insertOne({
+  user_id: ObjectId("67607aa01d8f000001000001"),      // Budi
+  restaurant_id: ObjectId("67607aa01d8f000001000010"),// Kopi Kenangan
+
+  order_items: [
+    {
+      menu_id: ObjectId("67607aa01d8f000001000030"),  // Caramel Latte
+      nama_menu: "Caramel Latte",
+      harga: 35000,
+      jumlah: 2,
+      subtotal: 70000
+    }
+  ],
+
+  total_harga: 70000,
+  metode_pembayaran: "E-Wallet",
+
+  status_pesanan: "Menunggu Pembayaran",
+  qr_code: null,
+  pickup_code: null,
+  tanggal_diambil: null,
+
+  created_at: new Date(),
+  updated_at: new Date()
+});
+
+outpus contoh:
+
+{
+  "insertedId": ObjectId("676080b41d8f000001000060")
+}
+
+
+3. Sistem membuat payment record
+
+db.payments.insertOne({
+  order_id: ObjectId("676080b41d8f000001000060"),
+  metode: "E-Wallet",
+  jumlah: 70000,
+  status: "Belum Lunas",
+  transaksi_id: null,
+  bukti_transfer: null,
+  tanggal_pembayaran: null,
+
+  created_at: new Date(),
+  updated_at: new Date()
+});
+
+output: 
+
+{
+  "insertedId": ObjectId("676080d81d8f000001000061")
+}
+
+
+-INSERT DATA: RESTAURANT, RESTAURANT ADMINS, MENUS
+
+// =============================
+// RESTAURANTS
+// =============================
+db.restaurants.insertMany([
+  {
+    _id: ObjectId("676100000000000000000001"),
+    nama_restoran: "Kopi Kenangan",
+    alamat: "Jakarta Pusat",
+    no_hp: "0812340001",
+    email: "kopikenangan@example.com",
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    _id: ObjectId("676100000000000000000002"),
+    nama_restoran: "Janji Jiwa",
+    alamat: "Jakarta Selatan",
+    no_hp: "0812340002",
+    email: "janjijiwa@example.com",
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    _id: ObjectId("676100000000000000000003"),
+    nama_restoran: "Pizza Hut",
+    alamat: "Jakarta Barat",
+    no_hp: "0812340003",
+    email: "pizzahut@example.com",
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    _id: ObjectId("676100000000000000000004"),
+    nama_restoran: "Roti O",
+    alamat: "Jakarta Timur",
+    no_hp: "0812340004",
+    email: "rotio@example.com",
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    _id: ObjectId("676100000000000000000005"),
+    nama_restoran: "Hokben",
+    alamat: "Jakarta Utara",
+    no_hp: "0812340005",
+    email: "hokben@example.com",
+    created_at: new Date(),
+    updated_at: new Date()
+  }
+])
+
+// =============================
+// RESTAURANTS ADMIN
+// =============================
+
+db.restaurant_admins.insertMany([
+  {
+    restaurant_id: ObjectId("676100000000000000000001"),
+    nama_admin: "Admin Kopi Kenangan",
+    email: "admin.kopken@example.com",
+    password: "<hashed_password>",
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    restaurant_id: ObjectId("676100000000000000000002"),
+    nama_admin: "Admin Janji Jiwa",
+    email: "admin.janjijiwa@example.com",
+    password: "<hashed_password>",
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    restaurant_id: ObjectId("676100000000000000000003"),
+    nama_admin: "Admin Pizza Hut",
+    email: "admin.pizzahut@example.com",
+    password: "<hashed_password>",
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    restaurant_id: ObjectId("676100000000000000000004"),
+    nama_admin: "Admin Roti O",
+    email: "admin.rotio@example.com",
+    password: "<hashed_password>",
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    restaurant_id: ObjectId("676100000000000000000005"),
+    nama_admin: "Admin Hokben",
+    email: "admin.hokben@example.com",
+    password: "<hashed_password>",
+    created_at: new Date(),
+    updated_at: new Date()
+  }
+])
+
+// =============================
+// MENUS
+// =============================
+db.menus.insertMany([
+  // ===== Kopi Kenangan =====
+  {
+    restaurant_id: ObjectId("676100000000000000000001"),
+    nama_menu: "Es Kopi Kenangan Mantan",
+    deskripsi: "Kopi susu gula aren",
+    harga: 22000,
+    gambar_menu: "uploads/kopken/mantan.jpg",
+    stock: 50,
+    available: true,
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    restaurant_id: ObjectId("676100000000000000000001"),
+    nama_menu: "Caramel Macchiato",
+    deskripsi: "Kopi caramel premium",
+    harga: 28000,
+    gambar_menu: "uploads/kopken/caramel.jpg",
+    stock: 40,
+    available: true,
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    restaurant_id: ObjectId("676100000000000000000001"),
+    nama_menu: "Americano",
+    deskripsi: "Kopi hitam klasik",
+    harga: 18000,
+    gambar_menu: "uploads/kopken/americano.jpg",
+    stock: 60,
+    available: true,
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    restaurant_id: ObjectId("676100000000000000000001"),
+    nama_menu: "Café Latte",
+    deskripsi: "Kopi susu creamy",
+    harga: 25000,
+    gambar_menu: "uploads/kopken/latte.jpg",
+    stock: 55,
+    available: true,
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    restaurant_id: ObjectId("676100000000000000000001"),
+    nama_menu: "Mocca",
+    deskripsi: "Kopi coklat manis",
+    harga: 27000,
+    gambar_menu: "uploads/kopken/mocca.jpg",
+    stock: 45,
+    available: true,
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+
+  // ===== Janji Jiwa =====
+  {
+    restaurant_id: ObjectId("676100000000000000000002"),
+    nama_menu: "Kopi Pokat",
+    deskripsi: "Kopi alpukat creamy",
+    harga: 26000,
+    gambar_menu: "uploads/janjijiwa/pokat.jpg",
+    stock: 40,
+    available: true,
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    restaurant_id: ObjectId("676100000000000000000002"),
+    nama_menu: "Es Kopi Susu",
+    deskripsi: "Signature milk coffee",
+    harga: 23000,
+    gambar_menu: "uploads/janjijiwa/susu.jpg",
+    stock: 60,
+    available: true,
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    restaurant_id: ObjectId("676100000000000000000002"),
+    nama_menu: "Caramel Latte",
+    deskripsi: "Kopi caramel lembut",
+    harga: 27000,
+    gambar_menu: "uploads/janjijiwa/caramel.jpg",
+    stock: 50,
+    available: true,
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    restaurant_id: ObjectId("676100000000000000000002"),
+    nama_menu: "Hazelnut Latte",
+    deskripsi: "Kopi hazelnut wangi",
+    harga: 28000,
+    gambar_menu: "uploads/janjijiwa/hazelnut.jpg",
+    stock: 45,
+    available: true,
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    restaurant_id: ObjectId("676100000000000000000002"),
+    nama_menu: "Americano",
+    deskripsi: "Kopi hitam",
+    harga: 18000,
+    gambar_menu: "uploads/janjijiwa/americano.jpg",
+    stock: 70,
+    available: true,
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+
+  // ===== Pizza Hut =====
+  {
+    restaurant_id: ObjectId("676100000000000000000003"),
+    nama_menu: "Pepperoni Pizza",
+    deskripsi: "Pizza pepperoni klasik",
+    harga: 85000,
+    gambar_menu: "uploads/pizzahut/pepperoni.jpg",
+    stock: 20,
+    available: true,
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    restaurant_id: ObjectId("676100000000000000000003"),
+    nama_menu: "Super Supreme",
+    deskripsi: "Pizza premium lengkap",
+    harga: 95000,
+    gambar_menu: "uploads/pizzahut/supreme.jpg",
+    stock: 25,
+    available: true,
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    restaurant_id: ObjectId("676100000000000000000003"),
+    nama_menu: "Cheese Lovers",
+    deskripsi: "Pizza keju melimpah",
+    harga: 90000,
+    gambar_menu: "uploads/pizzahut/cheese.jpg",
+    stock: 20,
+    available: true,
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    restaurant_id: ObjectId("676100000000000000000003"),
+    nama_menu: "Meat Lovers",
+    deskripsi: "Pizza daging lengkap",
+    harga: 100000,
+    gambar_menu: "uploads/pizzahut/meat.jpg",
+    stock: 15,
+    available: true,
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    restaurant_id: ObjectId("676100000000000000000003"),
+    nama_menu: "BBQ Chicken",
+    deskripsi: "Pizza ayam BBQ",
+    harga: 92000,
+    gambar_menu: "uploads/pizzahut/bbq.jpg",
+    stock: 18,
+    available: true,
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+
+  // ===== Roti O =====
+  {
+    restaurant_id: ObjectId("676100000000000000000004"),
+    nama_menu: "Roti O Original",
+    deskripsi: "Signature bun kopi",
+    harga: 15000,
+    gambar_menu: "uploads/rotio/original.jpg",
+    stock: 70,
+    available: true,
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    restaurant_id: ObjectId("676100000000000000000004"),
+    nama_menu: "Roti Pandan",
+    deskripsi: "Roti pandan wangi",
+    harga: 16000,
+    gambar_menu: "uploads/rotio/pandan.jpg",
+    stock: 60,
+    available: true,
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    restaurant_id: ObjectId("676100000000000000000004"),
+    nama_menu: "Roti Coklat",
+    deskripsi: "Roti coklat lembut",
+    harga: 16000,
+    gambar_menu: "uploads/rotio/coklat.jpg",
+    stock: 55,
+    available: true,
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    restaurant_id: ObjectId("676100000000000000000004"),
+    nama_menu: "Roti Keju",
+    deskripsi: "Roti isi keju",
+    harga: 17000,
+    gambar_menu: "uploads/rotio/keju.jpg",
+    stock: 50,
+    available: true,
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    restaurant_id: ObjectId("676100000000000000000004"),
+    nama_menu: "Roti Kopi Coklat",
+    deskripsi: "Campuran kopi & coklat",
+    harga: 18000,
+    gambar_menu: "uploads/rotio/kopicoklat.jpg",
+    stock: 45,
+    available: true,
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+
+  // ===== Hokben =====
+  {
+    restaurant_id: ObjectId("676100000000000000000005"),
+    nama_menu: "Bento Special 1",
+    deskripsi: "Ayam + nasi + salad",
+    harga: 45000,
+    gambar_menu: "uploads/hokben/bento1.jpg",
+    stock: 40,
+    available: true,
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    restaurant_id: ObjectId("676100000000000000000005"),
+    nama_menu: "Bento Special 2",
+    deskripsi: "Sapi + nasi + salad",
+    harga: 48000,
+    gambar_menu: "uploads/hokben/bento2.jpg",
+    stock: 35,
+    available: true,
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    restaurant_id: ObjectId("676100000000000000000005"),
+    nama_menu: "Ekkado",
+    deskripsi: "Ayam dibalut telur",
+    harga: 22000,
+    gambar_menu: "uploads/hokben/ekkado.jpg",
+    stock: 60,
+    available: true,
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    restaurant_id: ObjectId("676100000000000000000005"),
+    nama_menu: "Chicken Karage",
+    deskripsi: "Ayam goreng renyah",
+    harga: 20000,
+    gambar_menu: "uploads/hokben/karage.jpg",
+    stock: 50,
+    available: true,
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    restaurant_id: ObjectId("676100000000000000000000005"),
+    nama_menu: "Hoka Hemat 1",
+    deskripsi: "Paket hemat ayam",
+    harga: 30000,
+    gambar_menu: "uploads/hokben/hemat1.jpg",
+    stock: 45,
+    available: true,
+    created_at: new Date(),
+    updated_at: new Date()
+  }
+])
